@@ -143,6 +143,7 @@ export default class GamesController {
 
       return response.created(responses)
     } catch (e) {
+      logger.error(e, '[response] /v1/game/buy')
       if (
         e instanceof NoActiveGame ||
         e instanceof TransactionSignatureAlreadyExists ||
@@ -220,7 +221,7 @@ export default class GamesController {
 
       return response.created(responses)
     } catch (e) {
-      logger.error(e, 'Failed to sell')
+      logger.error(e, '[response] /v1/game/sell')
 
       if (
         e instanceof NoActiveGame ||
@@ -245,19 +246,61 @@ export default class GamesController {
 
   public async redeem({ request, response }: HttpContext) {
     logger.info(request.body(), '[payload] /v1/game/redeem')
-    const { id, owner, amount, signature } = await request.validateUsing(validation.redeem)
-    const game = await Game.query().where('id', id).firstOrFail()
+    const { signature } = await request.validateUsing(validation.sell)
 
     try {
-      await pot.redeem({
-        id: game.id,
-        owner: new PublicKey(owner),
-        amount,
-        signature,
-      })
+      const transfers = await getTransferTokenFromSignature(signature)
+      const games = await Game.query().whereNotNull('timeEnded')
+      const validated = []
 
-      return response.noContent()
+      for (const game of games) {
+        const overPotKeypair = game.overPotKeypair()
+        const underPotKeypair = game.underPotKeypair()
+
+        for (const transfer of transfers) {
+          if (
+            overPotKeypair.publicKey.equals(transfer.destination) ||
+            underPotKeypair.publicKey.equals(transfer.destination)
+          ) {
+            validated.push({
+              game,
+              owner: transfer.source,
+              side: overPotKeypair.publicKey.equals(transfer.destination) ? 'over' : 'under',
+              amount: transfer.amount,
+            })
+          }
+        }
+      }
+
+      if (validated.length === 0) {
+        return response.badRequest({
+          message: `No valid transfer to over or under address`,
+        })
+      }
+
+      const responses = []
+
+      for (const valid of validated) {
+        const sold = await pot.redeem({
+          id: valid.game.id,
+          owner: valid.owner,
+          amount: valid.amount,
+          signature,
+        })
+
+        if (sold) {
+          responses.push({
+            gameId: sold.game.id,
+            transactionId: sold.transaction.id,
+            signature: sold.signature,
+          })
+        }
+      }
+
+      return response.created(responses)
     } catch (e) {
+      logger.error(e, '[response] /v1/game/redeem')
+
       if (
         e instanceof NoActiveGame ||
         e instanceof TransactionSignatureAlreadyExists ||
@@ -265,7 +308,8 @@ export default class GamesController {
         e instanceof GameIsNotEnded ||
         e instanceof NoClaimableSolInGame ||
         e instanceof ZeroGameTokenSupply ||
-        e instanceof InvalidTransaction
+        e instanceof InvalidTransaction ||
+        e instanceof TransactionSignatureNotExists
       ) {
         return response.badRequest({
           message: `${e}`,

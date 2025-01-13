@@ -231,15 +231,17 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  gameId:
-                    type: number
-                  transactionId:
-                    type: number
-                  signature: 
-                    type: string
-                    example: 5CYMx7cXmCXrMg6PtzjG6vS3TPx2GeUveeoDCF3MD1nkkh2uWya6xN4fh13KSpyMkyvTiVLN3Y6mU87DFjNScwSa
+                type: array
+                items:
+                  type: object
+                  properties:
+                    gameId:
+                      type: number
+                    transactionId:
+                      type: number
+                    signature: 
+                      type: string
+                      example: 5CYMx7cXmCXrMg6PtzjG6vS3TPx2GeUveeoDCF3MD1nkkh2uWya6xN4fh13KSpyMkyvTiVLN3Y6mU87DFjNScwSa
   /v1/game/sell:
     post:
       summary: Sell token manually confirm signature (if not automated)
@@ -260,41 +262,48 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  gameId:
-                    type: number
-                  transactionId:
-                    type: number
-                  signature: 
-                    type: string
-                    example: 5CYMx7cXmCXrMg6PtzjG6vS3TPx2GeUveeoDCF3MD1nkkh2uWya6xN4fh13KSpyMkyvTiVLN3Y6mU87DFjNScwSa
-  # /v1/game/redeem:
-  #   post:
-  #     summary: Redeem token
-  #     tags:
-  #       - GAME
-  #     requestBody:
-  #       content:
-  #         application/json:
-  #           schema:
-  #             type: object
-  #             properties:
-  #               id:
-  #                 type: number
-  #                 example: 1
-  #               owner: 
-  #                 type: string
-  #                 example: CKWNyTA5mVjCuxCWpFn2PEBe2YvVk3UMS6fM5yL6XTDv
-  #               amount:
-  #                 type: number
-  #                 example: 1000000
-  #               signature:
-  #                 type: string
-  #                 example: 5CYMx7cXmCXrMg6PtzjG6vS3TPx2GeUveeoDCF3MD1nkkh2uWya6xN4fh13KSpyMkyvTiVLN3Y6mU87DFjNScwSa
-  #     responses:
-  #       204:
-  #         description: NO CONTENT
-tags:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    gameId:
+                      type: number
+                    transactionId:
+                      type: number
+                    signature: 
+                      type: string
+                      example: 5CYMx7cXmCXrMg6PtzjG6vS3TPx2GeUveeoDCF3MD1nkkh2uWya6xN4fh13KSpyMkyvTiVLN3Y6mU87DFjNScwSa
+  /v1/game/redeem:
+    post:
+      summary: Redeem token
+      tags:
+        - GAME
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                signature:
+                  type: string
+                  example: 5CYMx7cXmCXrMg6PtzjG6vS3TPx2GeUveeoDCF3MD1nkkh2uWya6xN4fh13KSpyMkyvTiVLN3Y6mU87DFjNScwSa
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    gameId:
+                      type: number
+                    transactionId:
+                      type: number
+                    signature: 
+                      type: string
+                      example: 5CYMx7cXmCXrMg6PtzjG6vS3TPx2GeUveeoDCF3MD1nkkh2uWya6xN4fh13KSpyMkyvTiVLN3Y6mU87DFjNScwSa
+  tags:
   - name: GAME
     description: Everything related to GAME

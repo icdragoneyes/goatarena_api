@@ -9,7 +9,6 @@ import {
 import {
   GameIsNotEnded,
   InvalidSignatureForInitiateGame,
-  InvalidTransaction,
   NoActiveGame,
   NoClaimableSolInGame,
   TransactionSignatureAlreadyExists,
@@ -22,7 +21,6 @@ import {
   getTokenPrice,
   mintToken,
   transferToWinningPotAndBurnOverUnderToken,
-  validateBurnTransaction,
 } from '../chain/solana/token.js'
 import db from '@adonisjs/lucid/services/db'
 import logger from '@adonisjs/core/services/logger'
@@ -488,7 +486,7 @@ export const redeem = async ({
     throw new GameIsNotEnded(game)
   }
 
-  if (game.claimableWinningPotInSol < 1) {
+  if (Number(game.claimableWinningPotInSol) < 1) {
     throw new NoClaimableSolInGame(game)
   }
 
@@ -498,42 +496,28 @@ export const redeem = async ({
     throw new TransactionSignatureAlreadyExists(signature)
   }
 
+  logger.info(
+    {
+      game: game.serialize(),
+    },
+    '[redeem] game state before'
+  )
+
   const model = new ClaimTransaction()
 
   model.gameId = game.id
   model.solanaWalletAddress = owner.toBase58()
 
-  const side = game.memecoinPriceEnd < game.memecoinPriceStart ? 'under' : 'over'
-  const overTokenSupply = game.overTokenMinted - game.overTokenBurnt
-  const underTokenSupply = game.underTokenMinted - game.underTokenBurnt
+  const side = Number(game.memecoinPriceEnd) < Number(game.memecoinPriceStart) ? 'under' : 'over'
+  const overTokenSupply = Number(game.overTokenMinted) - Number(game.overTokenBurnt)
+  const underTokenSupply = Number(game.underTokenMinted) - Number(game.underTokenBurnt)
   const tokenSupply = side === 'over' ? overTokenSupply : underTokenSupply
 
   if (tokenSupply === 0) {
     throw new ZeroGameTokenSupply(game, side)
   }
 
-  const tokenMintAddress = new PublicKey(
-    side === 'over' ? game.overTokenAddress : game.underTokenAddress
-  )
-
-  let isValid = false
-
-  try {
-    isValid = await validateBurnTransaction({
-      sender: owner,
-      amount,
-      mint: tokenMintAddress,
-      signature,
-    })
-  } catch (e) {
-    throw new InvalidTransaction(signature, `${e}`)
-  }
-
-  if (!isValid) {
-    throw new InvalidTransaction(signature, 'Invalid transaction signature')
-  }
-
-  const value = (amount / tokenSupply) * game.claimableWinningPotInSol
+  const value = (amount / tokenSupply) * Number(game.claimableWinningPotInSol)
 
   if (side === 'under') {
     game.underTokenBurnt = Number(game.underTokenBurnt) + amount
@@ -558,7 +542,16 @@ export const redeem = async ({
   model.targetSolanaWalletAddress = owner.toBase58()
 
   await model.save()
+
+  logger.info({ game: game.serialize() }, '[redeem] game state after')
+
   await game.save()
+
+  return {
+    game,
+    transaction: model,
+    signature: claimed.signature,
+  }
 }
 
 export const settle = async (game: Game) => {

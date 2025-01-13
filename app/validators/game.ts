@@ -28,9 +28,6 @@ const sell = vine.compile(
 
 const redeem = vine.compile(
   vine.object({
-    id: vine.number().positive(),
-    owner: vine.string().publicKey(),
-    amount: vine.number().positive(),
     signature: vine.string().transactionExist(),
   })
 )

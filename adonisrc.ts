@@ -33,7 +33,8 @@ export default defineConfig({
     () => import('@adonisjs/lucid/database_provider'),
     () => import('#providers/mint_provider'),
     () => import('#providers/receive_provider'),
-    () => import('#providers/settlement_provider')
+    () => import('#providers/settlement_provider'),
+    () => import('#providers/redeem_provider')
   ],
 
   /*
