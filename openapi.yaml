@@ -1,0 +1,300 @@
+openapi: "3.0.0"
+info:
+  title: "Goat Arena"
+  version: "0.0.1"
+  description: "Goat Arena API Docs"
+servers:
+  - url: http://localhost:3333
+    description: Local development server
+  - url: https://api.goatofgamblers.com
+    description: Production development server
+components:
+  responses:
+    Forbidden:
+      description: "Access token is missing or invalid"
+    Accepted:
+      description: "The request was accepted"
+    Created:
+      description: "The resource has been created"
+    NotFound:
+      description: "The resource has been created"
+    NotAcceptable:
+      description: "The resource has been created"
+  securitySchemes:
+    bearer:
+      type: "apiKey"
+      in: "header"
+      name: "Authorization"
+  schemas:
+    Game:
+      type: object
+      properties:
+        id:
+          type: number
+        timeStarted:
+          type: string
+          example: 2025-01-08 14:11
+        timeEnded:
+          type: string
+          example: 2025-01-08 15:11
+        memecoinName:
+          type: string
+          example: Artificial Goat Intelligence
+        memecoinSymbol:
+          type: string
+          example: GOATAGI
+        memecoinUsdStart:
+          type: number
+          example: 0.0003239
+        memecoinUsdEnd:
+          type: number
+          example: 0.0004239
+        tokenDecimal:
+          type: number
+          example: 6
+        contractAddress:
+          type: string
+          example: 33a14qXWo1MB7uXtTh5ifyvox7FdGRPQbsws41gfpump
+        memecoinPriceStart:
+          type: number 
+          example: 0.000001526
+        memecoinPriceEnd:
+          type: number
+          example: 0.000002526
+        overUnderPriceLine:
+          type: number
+          example: 0
+        totalPot:
+          type: number
+          example: 10000000000
+        overPot:
+          type: number
+          example: 7000000000
+        underPot:
+          type: number
+          example: 3000000000
+        overTokenMinted:
+          type: number
+          example: 6999
+        underTokenMinted:
+          type: number
+          example: 2999
+        overTokenBurnt:
+          type: number
+          example: 1
+        underTokenBurnt:
+          type: number
+          example: 1
+        overTokenPrice:
+          type: number
+          example: 1000000
+        underTokenPrice:
+          type: number
+          example: 1000000
+        claimableWinningPotInSol:
+          type: number
+          example: 10000000000
+        overTokenAddress:
+          type: string
+          example: 33a14qXWo1MB7uXtTh5ifyvox7FdGRPQbsws41gfpump
+        underTokenAddress:
+          type: string
+          example: 33a14qXWo1MB7uXtTh5ifyvox7FdGRPQbsws41gfpump
+    PaginationMeta:
+      type: "object"
+      properties:
+        total:
+          type: "number"
+          example: 100
+          nullable: false
+        page:
+          type: "number"
+          example: 2
+          nullable: false
+        perPage:
+          type: "number"
+          example: 10
+          nullable: false
+        currentPage:
+          type: "number"
+          example: 3
+          nullable: false
+        lastPage:
+          type: "number"
+          example: 10
+          nullable: false
+        firstPage:
+          type: "number"
+          example: 1
+          nullable: false
+        lastPageUrl:
+          type: "string"
+          example: "/?page=10"
+          nullable: false
+        firstPageUrl:
+          type: "string"
+          example: "/?page=1"
+          nullable: false
+        nextPageUrl:
+          type: "string"
+          example: "/?page=6"
+          nullable: false
+        previousPageUrl:
+          type: "string"
+          example: "/?page=5"
+          nullable: false
+paths:
+  /v1/game/fighting:
+    get:
+      summary: Get current fighting
+      tags:
+        - GAME
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+                  data: 
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Game'
+  /v1/game/start:
+    post:
+      summary: Start new game with custom contract
+      tags:
+        - GAME
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                signature:
+                  type: string
+                  example: 5CYMx7cXmCXrMg6PtzjG6vS3TPx2GeUveeoDCF3MD1nkkh2uWya6xN4fh13KSpyMkyvTiVLN3Y6mU87DFjNScwSa
+                contract:
+                  type: string
+                  example: 33a14qXWo1MB7uXtTh5ifyvox7FdGRPQbsws41gfpump
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  signature: 
+                    type: string
+                    example: 5CYMx7cXmCXrMg6PtzjG6vS3TPx2GeUveeoDCF3MD1nkkh2uWya6xN4fh13KSpyMkyvTiVLN3Y6mU87DFjNScwSa
+                  game:
+                    $ref: '#/components/schemas/Game'
+  # /v1/game/start-random:
+  #   post:
+  #     summary: Start new game with random token
+  #     tags:
+  #       - GAME
+  #     responses:
+  #       204:
+  #         description: Created
+  #         content:
+  #           application/json:
+  #             schema:
+  #               type: object
+  #               properties:
+  #                 signature: 
+  #                   type: string
+  #                   example: 5CYMx7cXmCXrMg6PtzjG6vS3TPx2GeUveeoDCF3MD1nkkh2uWya6xN4fh13KSpyMkyvTiVLN3Y6mU87DFjNScwSa
+  #                 game:
+  #                   $ref: '#/components/schemas/Game'
+  /v1/game/buy:
+    post:
+      summary: Buy token manually confirm signature (if not automated)
+      tags:
+        - GAME
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                signature:
+                  type: string
+                  example: 5CYMx7cXmCXrMg6PtzjG6vS3TPx2GeUveeoDCF3MD1nkkh2uWya6xN4fh13KSpyMkyvTiVLN3Y6mU87DFjNScwSa
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  gameId:
+                    type: number
+                  transactionId:
+                    type: number
+                  signature: 
+                    type: string
+                    example: 5CYMx7cXmCXrMg6PtzjG6vS3TPx2GeUveeoDCF3MD1nkkh2uWya6xN4fh13KSpyMkyvTiVLN3Y6mU87DFjNScwSa
+  /v1/game/sell:
+    post:
+      summary: Sell token manually confirm signature (if not automated)
+      tags:
+        - GAME
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                signature:
+                  type: string
+                  example: 5CYMx7cXmCXrMg6PtzjG6vS3TPx2GeUveeoDCF3MD1nkkh2uWya6xN4fh13KSpyMkyvTiVLN3Y6mU87DFjNScwSa
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  gameId:
+                    type: number
+                  transactionId:
+                    type: number
+                  signature: 
+                    type: string
+                    example: 5CYMx7cXmCXrMg6PtzjG6vS3TPx2GeUveeoDCF3MD1nkkh2uWya6xN4fh13KSpyMkyvTiVLN3Y6mU87DFjNScwSa
+  # /v1/game/redeem:
+  #   post:
+  #     summary: Redeem token
+  #     tags:
+  #       - GAME
+  #     requestBody:
+  #       content:
+  #         application/json:
+  #           schema:
+  #             type: object
+  #             properties:
+  #               id:
+  #                 type: number
+  #                 example: 1
+  #               owner: 
+  #                 type: string
+  #                 example: CKWNyTA5mVjCuxCWpFn2PEBe2YvVk3UMS6fM5yL6XTDv
+  #               amount:
+  #                 type: number
+  #                 example: 1000000
+  #               signature:
+  #                 type: string
+  #                 example: 5CYMx7cXmCXrMg6PtzjG6vS3TPx2GeUveeoDCF3MD1nkkh2uWya6xN4fh13KSpyMkyvTiVLN3Y6mU87DFjNScwSa
+  #     responses:
+  #       204:
+  #         description: NO CONTENT
+tags:
+  - name: GAME
+    description: Everything related to GAME
