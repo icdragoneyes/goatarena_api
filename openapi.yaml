@@ -163,6 +163,24 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/Game'
+  /v1/game/{id}:
+    get:
+      summary: Get game by id
+      tags:
+        - GAME
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: number
+          required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Game'
   /v1/game/start:
     post:
       summary: Start new game with custom contract

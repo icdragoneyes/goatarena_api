@@ -33,6 +33,12 @@ export default class GamesController {
     return games
   }
 
+  public async show({ params }: HttpContext) {
+    const game = await Game.query().where('id', params.id).firstOrFail()
+
+    return game
+  }
+
   // public async startWithRandomChoice({ response }: HttpContext) {
   //   try {
   //     return response.created(await pot.startWithRandomChoice())
