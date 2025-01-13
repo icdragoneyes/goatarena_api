@@ -6,7 +6,7 @@ info:
 servers:
   - url: http://localhost:3333
     description: Local development server
-  - url: https://api.goatofgamblers.com
+  - url: https://api.goatarena.xyz
     description: Production development server
 components:
   responses:
