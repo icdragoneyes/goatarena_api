@@ -24,6 +24,7 @@ router.get('/swagger', async () => {
   return fs.readFileSync('openapi.yaml')
 })
 
+router.get('/v1/game', [Game, 'paginate'])
 router.get('/v1/game/fighting', [Game, 'fighting'])
 router.get('/v1/game/:id', [Game, 'show'])
 router.post('/v1/game/start', [Game, 'startWithCustomContract'])

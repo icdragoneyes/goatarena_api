@@ -4,6 +4,7 @@ const paginate = vine.compile(
   vine.object({
     page: vine.number().positive().nullable().optional(),
     limit: vine.number().positive().nullable().optional(),
+    search: vine.string().nullable().optional(),
   })
 )
 

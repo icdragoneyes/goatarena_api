@@ -23,14 +23,39 @@ import { Side } from '../types.js'
 import { RouteNotFound } from '../chain/solana/errors.js'
 
 export default class GamesController {
+  public async paginate({ request }: HttpContext) {
+    const payload = await request.validateUsing(validation.paginate)
+
+    const query = Game.query().whereNotNull('timeEnded').orderBy('createdAt', 'desc')
+
+    if (payload.search) {
+      const search = `%${payload.search}%`
+
+      query.where((q) => {
+        q.orWhereILike('memecoinName', search)
+          .orWhereILike('memecoinSymbol', search)
+          .orWhereILike('contractAddress', search)
+      })
+    }
+
+    return await query.paginate(payload.page || 1, payload.limit || 10)
+  }
+
   public async fighting({ request }: HttpContext) {
     const payload = await request.validateUsing(validation.paginate)
-    const games = await Game.query()
-      .whereNull('time_ended')
-      .orderBy('createdAt', 'desc')
-      .paginate(payload.page || 1, payload.limit || 10)
+    const query = Game.query().whereNull('timeEnded').orderBy('createdAt', 'desc')
 
-    return games
+    if (payload.search) {
+      const search = `%${payload.search}%`
+
+      query.where((q) => {
+        q.orWhereILike('memecoinName', search)
+          .orWhereILike('memecoinSymbol', search)
+          .orWhereILike('contractAddress', search)
+      })
+    }
+
+    return await query.paginate(payload.page || 1, payload.limit || 10)
   }
 
   public async show({ params }: HttpContext) {

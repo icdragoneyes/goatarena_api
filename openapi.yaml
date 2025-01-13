@@ -144,11 +144,62 @@ components:
           example: "/?page=5"
           nullable: false
 paths:
-  /v1/game/fighting:
+  /v1/game:
     get:
-      summary: Get current fighting
+      summary: Get history game arena
       tags:
         - GAME
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: number
+          required: false
+        - in: query
+          name: limit
+          schema:
+            type: number
+          required: false
+        - in: query
+          name: search
+          schema:
+            type: string
+          required: false
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+                  data: 
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Game'
+  /v1/game/fighting:
+    get:
+      summary: Get current fighting arena
+      tags:
+        - GAME
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: number
+          required: false
+        - in: query
+          name: limit
+          schema:
+            type: number
+          required: false
+        - in: query
+          name: search
+          schema:
+            type: string
+          required: false
       responses:
         200:
           description: OK
