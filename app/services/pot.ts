@@ -21,6 +21,7 @@ import {
   getTokenMetadata,
   getTokenPrice,
   mintToken,
+  transferToWinningPotAndBurnOverUnderToken,
   validateBurnTransaction,
 } from '../chain/solana/token.js'
 import db from '@adonisjs/lucid/services/db'
@@ -28,7 +29,6 @@ import logger from '@adonisjs/core/services/logger'
 import SellTransaction from '#models/sell_transaction'
 import { DateTime } from 'luxon'
 import {
-  closeAccount,
   getSourceTransferFromDestination,
   transfer,
   transferToMany,
@@ -591,62 +591,48 @@ export const settle = async (game: Game) => {
     const currentPrice = await getTokenPrice(new PublicKey(game.contractAddress))
     const winnerSide = currentPrice.sol > initialPrice ? 'over' : 'under'
     const isOverWinner = winnerSide === 'over'
-    const overPotKeypair = game.overPotKeypair()
-    const underPotKeypair = game.underPotKeypair()
+    const winnerKeypair = isOverWinner ? game.overPotKeypair() : game.underPotKeypair()
+    const winnerMint = isOverWinner ? game.overTokenKeypair() : game.underTokenKeypair()
+    const looserKeypair = isOverWinner ? game.underPotKeypair() : game.overPotKeypair()
+    const looserMint = isOverWinner ? game.underTokenKeypair() : game.overTokenKeypair()
     const memo = `goatSettle_${game.id}`
 
-    if (isOverWinner) {
-      logger.info(
-        {
-          winner: winnerSide,
-          source: underPotKeypair.publicKey.toBase58(),
-          destination: overPotKeypair.publicKey.toBase58(),
-          memo,
-        },
-        '[settlement] closing under pot'
-      )
-      const signature = await closeAccount(underPotKeypair, overPotKeypair.publicKey, {
+    logger.info(
+      {
+        gameId: game.id,
+        winner: winnerSide,
+        winnerAddress: winnerKeypair.publicKey.toBase58(),
+        winnerMint: winnerMint.publicKey.toBase58(),
         memo,
-        payer: masterWallet,
-      })
-      logger.info(
-        {
-          winner: winnerSide,
-          source: underPotKeypair.publicKey.toBase58(),
-          destination: overPotKeypair.publicKey.toBase58(),
-          memo,
-          signature,
-        },
-        '[settlement] under pot closed'
-      )
+      },
+      '[settlement] transfer from looser to winner and burn both token'
+    )
 
+    const signature = await transferToWinningPotAndBurnOverUnderToken({
+      payer: masterWallet,
+      winnerKeypair,
+      winnerMint: winnerMint.publicKey,
+      looserKeypair,
+      looserMint: looserMint.publicKey,
+      memo,
+    })
+
+    logger.info(
+      {
+        gameId: game.id,
+        winner: winnerSide,
+        winnerAddress: winnerKeypair.publicKey.toBase58(),
+        winnerMint: winnerMint.publicKey.toBase58(),
+        memo,
+        signature,
+      },
+      '[settlement] transferred from looser to winner and burn both token'
+    )
+
+    if (isOverWinner) {
       game.overPot = Number(game.overPot) + Number(game.underPot)
       game.underPot = 0
     } else {
-      logger.info(
-        {
-          winner: winnerSide,
-          source: overPotKeypair.publicKey.toBase58(),
-          destination: underPotKeypair.publicKey.toBase58(),
-          memo,
-        },
-        '[settlement] closing over pot'
-      )
-      const signature = await closeAccount(overPotKeypair, underPotKeypair.publicKey, {
-        memo,
-        payer: masterWallet,
-      })
-      logger.info(
-        {
-          winner: winnerSide,
-          source: overPotKeypair.publicKey.toBase58(),
-          destination: underPotKeypair.publicKey.toBase58(),
-          memo,
-          signature,
-        },
-        '[settlement] over pot closed'
-      )
-
       game.underPot = Number(game.underPot) + Number(game.overPot)
       game.overPot = 0
     }

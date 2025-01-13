@@ -5,6 +5,7 @@ import {
   ParsedInstruction,
   PublicKey,
   SystemProgram,
+  TransactionInstruction,
   TransactionMessage,
   VersionedTransaction,
 } from '@solana/web3.js'
@@ -12,6 +13,7 @@ import { createMint, mintTo } from './spl.js'
 import rpc, { sendRawTransaction } from './rpc.js'
 import {
   createAssociatedTokenAccountInstruction,
+  createBurnInstruction,
   createInitializeMint2Instruction,
   getAssociatedTokenAddress,
   getAssociatedTokenAddressSync,
@@ -27,6 +29,8 @@ import price from './price.js'
 import { FailedGetSolanaPriceInUsd } from './errors.js'
 import logger from '@adonisjs/core/services/logger'
 import { InvalidContractAddress } from '#services/errors'
+import { sleep } from '../../utils.js'
+import { MEMO_PROGRAM_ID } from './constant.js'
 
 export const createToken = async () => {
   const payer = getMasterWallet()
@@ -145,6 +149,120 @@ export const createOverUnderToken = async (
     underMint: underMintKeypair,
     signature,
   }
+}
+
+export const transferToWinningPotAndBurnOverUnderToken = async ({
+  payer,
+  winnerMint,
+  winnerKeypair,
+  looserMint,
+  looserKeypair,
+  memo,
+}: {
+  payer: Keypair
+  winnerMint: PublicKey
+  winnerKeypair: Keypair
+  looserMint: PublicKey
+  looserKeypair: Keypair
+  memo: string
+}): Promise<string> => {
+  const retry = async (error: unknown) => {
+    logger.error(
+      {
+        payer: payer.publicKey.toBase58(),
+        overMint: winnerMint.toBase58(),
+        overAddress: winnerKeypair.publicKey.toBase58(),
+        underMint: looserMint.toBase58(),
+        underAddress: looserKeypair.publicKey.toBase58(),
+        error,
+      },
+      '[burnOverAndUnderToken] retrying'
+    )
+
+    await sleep(100)
+
+    return await transferToWinningPotAndBurnOverUnderToken({
+      payer,
+      winnerMint,
+      winnerKeypair,
+      looserMint,
+      looserKeypair,
+      memo,
+    })
+  }
+  const looserLamports = await rpc.getBalance(looserKeypair.publicKey)
+  const instructions = [
+    ComputeBudgetProgram.setComputeUnitPrice({
+      microLamports: 50_000,
+    }),
+  ]
+  const winnerAccount = await getAssociatedTokenAddress(winnerMint, winnerKeypair.publicKey)
+  const winnerTokenBalance = await getTokenBalance(winnerMint, winnerKeypair.publicKey)
+  const looserAccount = await getAssociatedTokenAddress(looserMint, looserKeypair.publicKey)
+  const looserTokenBalance = await getTokenBalance(looserMint, looserKeypair.publicKey)
+
+  if (Number(winnerTokenBalance) > 0) {
+    instructions.push(
+      createBurnInstruction(winnerAccount, winnerMint, winnerKeypair.publicKey, winnerTokenBalance)
+    )
+  }
+
+  if (Number(looserTokenBalance) > 0) {
+    instructions.push(
+      createBurnInstruction(looserAccount, looserMint, looserKeypair.publicKey, looserTokenBalance)
+    )
+  }
+
+  instructions.push(
+    SystemProgram.transfer({
+      fromPubkey: looserKeypair.publicKey,
+      toPubkey: winnerKeypair.publicKey,
+      lamports: looserLamports,
+    }),
+    SystemProgram.allocate({
+      accountPubkey: looserKeypair.publicKey,
+      space: 0,
+    }),
+    new TransactionInstruction({
+      keys: [],
+      programId: MEMO_PROGRAM_ID,
+      data: Buffer.from(memo),
+    })
+  )
+
+  let latestBlockhash
+
+  try {
+    latestBlockhash = await rpc.getLatestBlockhash()
+  } catch (e) {
+    return retry(e)
+  }
+
+  const message = new TransactionMessage({
+    payerKey: payer.publicKey,
+    recentBlockhash: latestBlockhash.blockhash,
+    instructions,
+  }).compileToV0Message()
+
+  const transaction = new VersionedTransaction(message)
+
+  transaction.sign([payer, winnerKeypair, looserKeypair])
+
+  let signature
+
+  try {
+    signature = await sendRawTransaction(transaction.serialize())
+  } catch (e) {
+    return retry(e)
+  }
+
+  await rpc.confirmTransaction({
+    signature,
+    blockhash: latestBlockhash.blockhash,
+    lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+  })
+
+  return signature
 }
 
 export const mintToken = async (to: PublicKey, mint: PublicKey, amount: number) => {
@@ -325,4 +443,13 @@ export const getTokenPrice = async (mint: PublicKey) => {
   }
 }
 
-export const getTokenAccountOwner = async () => {}
+export const getTokenBalance = async (mint: PublicKey, owner: PublicKey) => {
+  try {
+    const contract = await getAssociatedTokenAddress(mint, owner)
+    const info = await rpc.getTokenAccountBalance(contract)
+
+    return Number(info?.value?.amount || 0) / 10 ** info?.value?.decimals
+  } catch (e) {
+    return 0
+  }
+}
