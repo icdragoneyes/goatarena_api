@@ -55,16 +55,16 @@ export default class Game extends BaseModel {
   @column()
   declare underPot: number
 
-  @column()
+  @column({ serializeAs: null })
   declare overTokenMinted: number
 
-  @column()
+  @column({ serializeAs: null })
   declare underTokenMinted: number
 
-  @column()
+  @column({ serializeAs: null })
   declare overTokenBurnt: number
 
-  @column()
+  @column({ serializeAs: null })
   declare underTokenBurnt: number
 
   @column()
@@ -73,25 +73,13 @@ export default class Game extends BaseModel {
   @column()
   declare underPrice: number
 
-  @column()
+  @column({ serializeAs: null })
   declare claimableWinningPotInSol: number
 
-  @column({
-    serialize(value: string) {
-      const keypair = Keypair.fromSecretKey(base58.decode(value))
-
-      return keypair.publicKey
-    },
-  })
+  @column({ serializeAs: null })
   declare overTokenAddress: string
 
-  @column({
-    serialize(value: string) {
-      const keypair = Keypair.fromSecretKey(base58.decode(value))
-
-      return keypair.publicKey
-    },
-  })
+  @column({ serializeAs: null })
   declare underTokenAddress: string
 
   @column({
