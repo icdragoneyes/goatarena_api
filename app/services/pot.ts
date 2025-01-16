@@ -423,7 +423,7 @@ export const sell = async ({
         sourcePotKeypair,
         [
           { address: targetPotKeypair.publicKey, lamports: lamportsRedistribution },
-          { address: owner, lamports: lamportsNettMinusTax - 5000 },
+          { address: owner, lamports: lamportsNettMinusTax },
         ],
         { memo }
       )
@@ -533,7 +533,7 @@ export const redeem = async ({
 
   game.claimableWinningPotInSol = Number(game.claimableWinningPotInSol) - value
 
-  const claimed = await transfer(sourcePotKeypair, owner, value - 5000, {
+  const claimed = await transfer(sourcePotKeypair, owner, value, {
     memo: `goatClaim_${game.id}`,
   })
 
