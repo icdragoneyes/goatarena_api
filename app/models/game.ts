@@ -76,10 +76,22 @@ export default class Game extends BaseModel {
   @column({ serializeAs: null })
   declare claimableWinningPotInSol: number
 
-  @column({ serializeAs: null })
+  @column({
+    serialize(value: string) {
+      const keypair = Keypair.fromSecretKey(base58.decode(value))
+
+      return keypair.publicKey
+    },
+  })
   declare overTokenAddress: string
 
-  @column({ serializeAs: null })
+  @column({
+    serialize(value: string) {
+      const keypair = Keypair.fromSecretKey(base58.decode(value))
+
+      return keypair.publicKey
+    },
+  })
   declare underTokenAddress: string
 
   @column({
