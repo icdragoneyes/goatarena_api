@@ -1,10 +1,4 @@
-const endpoint = 'https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd'
-
-type Response = {
-  solana: {
-    usd: number
-  }
-}
+import jupiter, { SOL, USDC } from './jupiter.js'
 
 const queue = {
   latest: 0,
@@ -24,11 +18,9 @@ const solana = async (n = 1) => {
 }
 
 const update = async () => {
-  const response = await fetch(endpoint).then((r) => r.json() as Promise<Response>)
+  const response = await jupiter.getTokenPrices([SOL], USDC)
 
-  if (response?.solana?.usd) {
-    queue.latest = response.solana.usd
-  }
+  queue.latest = response[SOL.toBase58()]
 
   return queue.latest
 }

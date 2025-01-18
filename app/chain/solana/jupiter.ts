@@ -75,6 +75,7 @@ export type QuoteOptions = {
 export type SwapOptions = QuoteOptions & { payer?: PublicKey }
 
 export const SOL = new PublicKey('So11111111111111111111111111111111111111112')
+export const USDC = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v')
 
 const deserializeInstruction = (instruction: InstructionResponse) => {
   return new TransactionInstruction({
@@ -320,9 +321,9 @@ export const sell = async (
 }
 
 export const getTokenPriceInSol = async (output: PublicKey) => {
-  const prices = await getTokenPrices([SOL], output)
+  const prices = await getTokenPrices([output], SOL)
 
-  return prices[SOL.toBase58()]
+  return prices[output.toBase58()]
 }
 
 export const getTokenPrices = async (inputMints: PublicKey[], outputMint: PublicKey) => {
@@ -362,4 +363,5 @@ export default {
   buy,
   sell,
   getTokenPriceInSol,
+  getTokenPrices,
 }
