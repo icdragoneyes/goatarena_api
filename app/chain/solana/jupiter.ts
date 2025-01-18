@@ -2,7 +2,6 @@ import env from '#start/env'
 import {
   AddressLookupTableAccount,
   BlockhashWithExpiryBlockHeight,
-  LAMPORTS_PER_SOL,
   PublicKey,
   TransactionInstruction,
   TransactionMessage,
@@ -321,10 +320,40 @@ export const sell = async (
 }
 
 export const getTokenPriceInSol = async (output: PublicKey) => {
-  const amount = Math.round(1 * LAMPORTS_PER_SOL)
-  const q = await quote(SOL, output, amount)
+  const prices = await getTokenPrices([SOL], output)
 
-  return amount / Number(q.outAmount) / 1000
+  return prices[SOL.toBase58()]
+}
+
+export const getTokenPrices = async (inputMints: PublicKey[], outputMint: PublicKey) => {
+  const exists: Record<string, number> = {}
+  const host = env.get('JUPITER_HOST')
+  const url = new URL(`${host}/price`)
+  const inputMint = inputMints.map((mint) => mint.toBase58())
+
+  url.searchParams.set('ids', inputMint.join(','))
+  url.searchParams.set('vsToken', outputMint.toBase58())
+
+  const response = await fetch(url).then(
+    (r) =>
+      r.json() as Promise<{
+        data: Record<
+          string,
+          {
+            id: string
+            price: number
+          }
+        >
+      }>
+  )
+
+  const values = Object.values(response.data)
+
+  for (const { id, price } of values) {
+    exists[id] = price
+  }
+
+  return exists
 }
 
 export default {
