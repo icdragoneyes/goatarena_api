@@ -75,6 +75,12 @@ export const start = async ({
     throw new InvalidSignatureForInitiateGame(signature, contract.toBase58())
   }
 
+  const exists = await Game.query().where('initiatorSignature', signature).first()
+
+  if (exists) {
+    throw new TransactionSignatureAlreadyExists(signature)
+  }
+
   const metadata = await getTokenMetadata(contract)
 
   logger.info({ metadata }, 'Selected meme metadata')
@@ -86,6 +92,7 @@ export const start = async ({
   const game = new Game()
 
   game.initiator = initiator.source.toBase58()
+  game.initiatorSignature = signature
   game.contractAddress = contract.toBase58()
   game.memecoinName = metadata.name
   game.memecoinSymbol = metadata.symbol
