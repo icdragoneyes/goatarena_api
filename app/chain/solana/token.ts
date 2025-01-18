@@ -63,7 +63,7 @@ export const createOverUnderToken = async (
 
   const instructions = [
     ComputeBudgetProgram.setComputeUnitPrice({
-      microLamports: 50_000,
+      microLamports: 100_000,
     }),
     SystemProgram.transfer({
       fromPubkey: payer.publicKey,
