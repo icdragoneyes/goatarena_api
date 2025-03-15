@@ -1,6 +1,10 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
 import Game from '#models/game'
+import ClaimTransaction from '#models/claim_transaction'
+import Redeemable from '#models/redeemable'
+import BuyTransaction from '#models/buy_transaction'
+import SellTransaction from '#models/sell_transaction'
 import pot from '#services/pot'
 import logger from '@adonisjs/core/services/logger'
 import validation from '#validators/game'
@@ -351,5 +355,67 @@ export default class GamesController {
         error: `${e}`,
       })
     }
+  }
+
+
+  public async redeemables({ request }: HttpContext) {
+    
+    const solana_wallet = request.input('solana_wallet')
+    const query = Redeemable.query()
+    .where('solana_wallet_address', solana_wallet)
+    .andWhere((query) => {
+      query.whereNull('zero_balance_left').orWhere('zero_balance_left', false)
+    })
+
+    const gameDataMap = new Map<number, any[]>()
+
+    const results = await query
+    results.forEach((entry) => {
+      const gameId = entry.gameId
+      if (!gameDataMap.has(gameId)) {
+        gameDataMap.set(gameId, [])
+      }
+      gameDataMap.get(gameId)!.push(entry)
+    })
+
+    const gameDataArray = Array.from(gameDataMap.values())
+
+    
+
+    return gameDataArray
+  }
+
+  public async positions({ request }: HttpContext) {
+    
+    const solana_wallet = request.input('solana_wallet')
+
+    // Fetch active game IDs where timeEnded is null
+    const activeGameIds = await Game.query().whereNull('timeEnded').select('id')
+
+    // Fetch BuyTransaction and SellTransaction data
+    const buyTransactions = await BuyTransaction.query()
+      .whereIn('gameId', activeGameIds.map(game => game.id))
+      .andWhere('solana_wallet_address', solana_wallet)
+
+    const sellTransactions = await SellTransaction.query()
+      .whereIn('gameId', activeGameIds.map(game => game.id))
+      .andWhere('solana_wallet_address', solana_wallet)
+
+    // Combine results from both transactions
+    const combinedResults = [...buyTransactions, ...sellTransactions]
+
+    const gameDataMap = new Map<number, any[]>()
+
+    combinedResults.forEach((entry) => {
+      const gameId = entry.gameId
+      if (!gameDataMap.has(gameId)) {
+        gameDataMap.set(gameId, [])
+      }
+      gameDataMap.get(gameId)!.push(entry)
+    })
+
+    const gameDataArray = Array.from(gameDataMap.values())
+
+    return gameDataArray
   }
 }

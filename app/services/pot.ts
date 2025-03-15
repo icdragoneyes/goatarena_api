@@ -650,6 +650,25 @@ export const settle = async (game: Game) => {
   }
 }
 
+export const getRedeemable = async (solana_wallet: string) => {
+  logger.info({ wallet: solana_wallet }, '[reedemables] get redeemables')
+
+  try {
+    const transactions = await ClaimTransaction.query()
+    .where('solana_wallet_address', solana_wallet)
+    .andWhere((query) => {
+      query.whereNull('zero_balance_left').orWhere('zero_balance_left', false)
+    })
+
+    await game.save()
+  } catch (error) {
+    logger.error({
+      game: game.serialize(),
+      error,
+    })
+  }
+}
+
 export default {
   // startWithRandomChoice,
   start,

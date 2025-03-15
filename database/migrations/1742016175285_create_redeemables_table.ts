@@ -1,7 +1,7 @@
 import { BaseSchema } from '@adonisjs/lucid/schema'
 
 export default class extends BaseSchema {
-  protected tableName = 'claim_transactions'
+  protected tableName = 'redeemables'
 
   async up() {
     this.schema.createTable(this.tableName, (table) => {
@@ -14,12 +14,9 @@ export default class extends BaseSchema {
         .inTable('games')
         .onDelete('CASCADE')
       table.string('solana_wallet_address').notNullable()
-      table.string('target_solana_wallet_address').notNullable()
-      table.string('solana_tx_signature').notNullable()
-      table.bigint('fees').unsigned().defaultTo(0)
-      table.bigint('claim_token_amount').unsigned().defaultTo(0)
-      table.bigint('sol_received').unsigned().defaultTo(0)
-      table.string('burn_tx_signature').notNullable()
+      table.string('balance_left').notNullable()
+      table.string('token_address').notNullable()
+      table.bigint('type').unsigned().defaultTo(0)
       table.boolean('zero_balance_left')
       table.timestamp('created_at')
       table.timestamp('updated_at')
@@ -27,9 +24,8 @@ export default class extends BaseSchema {
       table.index([
         'game_id',
         'solana_wallet_address',
-        'target_solana_wallet_address',
-        'solana_tx_signature',
-        'burn_tx_signature',
+        'token_address',
+       
       ])
     })
   }
